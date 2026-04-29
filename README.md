@@ -80,6 +80,7 @@ The analysis highlights clear opportunities to improve both conversion performan
 By optimizing both conversion rates and cost efficiency, the organization can improve ROI, reduce wasted spend, and make more strategic, data-driven recruiting decisions.
 
 ## [Dashboard](https://docs.google.com/presentation/d/12f5Gv2mVd9z9lYCP7LkJGZueJ-FacSupdMweQOQGP6M/edit?usp=sharing)
+<img width="1894" height="730" alt="Screenshot 2026-04-29 111343" src="https://github.com/user-attachments/assets/303c1911-d235-44a6-bb94-6870b2440663" />
 
 ## Portfolio
 View the full business case and dashboard summary in my [Notion portfolio](https://www.notion.so/Data-Science-Portfolio-6edb5c142bd5828688a901519a004abb?source=copy_link)
