@@ -1,0 +1,211 @@
+# Import required libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Generate Simulated Dataset
+np.random.seed(42)
+
+n = 1200
+
+sources = ["Campus", "LinkedIn", "Referral", "Job Board"]
+source_probs = [0.25, 0.35, 0.20, 0.20]
+
+schools = ["UNC", "Duke", "NC State", "UVA", "Other"]
+
+data = pd.DataFrame({
+    "candidate_id": range(1000, 1000 + n),
+    "source": np.random.choice(sources, n, p=source_probs),
+    "school": np.random.choice(schools, n)
+})
+
+# Assign Funnel Stage
+def assign_stage(source):
+    if source == "Campus":
+        return np.random.choice(
+            ["Applied", "Interviewed", "Offered", "Accepted"],
+            p=[0.40, 0.30, 0.20, 0.10]
+        )
+    elif source == "Referral":
+        return np.random.choice(
+            ["Applied", "Interviewed", "Offered", "Accepted"],
+            p=[0.30, 0.30, 0.25, 0.15]
+        )
+    elif source == "LinkedIn":
+        return np.random.choice(
+            ["Applied", "Interviewed", "Offered", "Accepted"],
+            p=[0.50, 0.25, 0.15, 0.10]
+        )
+    else:
+        return np.random.choice(
+            ["Applied", "Interviewed", "Offered", "Accepted"],
+            p=[0.60, 0.25, 0.10, 0.05]
+        )
+
+data["stage"] = data["source"].apply(assign_stage)
+
+# Create Conversion Flag
+
+data["converted"] = data["stage"].apply(lambda x: 1 if x == "Accepted" else 0)
+
+# Assign Cost by Source
+
+cost_map = {
+    "Campus": 150,
+    "LinkedIn": 200,
+    "Referral": 100,
+    "Job Board": 120
+}
+
+data["cost"] = data["source"].map(cost_map) + np.random.normal(0, 20, n)
+data["cost"] = data["cost"].clip(lower=50).round(2)
+
+# Save Dataset
+
+data.to_csv("conversion_funnel_data.csv", index=False)
+
+print("Dataset created: conversion_funnel_data.csv")
+data.head()
+
+# Data Quality Checks
+
+print("Dataset Info:")
+data.info()
+
+print("\nMissing Values:")
+print(data.isnull().sum())
+
+print("\nSummary Statistics:")
+data.describe()
+
+# Funnel Counts
+
+stage_order = ["Applied", "Interviewed", "Offered", "Accepted"]
+
+funnel_counts = (
+    data.groupby("stage")["candidate_id"]
+    .nunique()
+    .reindex(stage_order)
+    .reset_index()
+)
+
+funnel_counts.columns = ["stage", "candidate_count"]
+
+funnel_counts
+
+# Funnel Conversion Rates
+
+total_candidates = data["candidate_id"].nunique()
+
+funnel_counts["conversion_rate_from_total"] = (
+    funnel_counts["candidate_count"] / total_candidates
+)
+
+funnel_counts
+
+# Source Conversion Analysis
+
+source_conversion = data.groupby("source").agg(
+    total_candidates=("candidate_id", "count"),
+    conversions=("converted", "sum"),
+    total_cost=("cost", "sum")
+).reset_index()
+
+source_conversion["conversion_rate"] = (
+    source_conversion["conversions"] / source_conversion["total_candidates"]
+)
+
+source_conversion["cost_per_conversion"] = (
+    source_conversion["total_cost"] / source_conversion["conversions"]
+)
+
+source_conversion.sort_values(by="conversion_rate", ascending=False)
+
+# School-Level Performance
+
+school_performance = data.groupby("school").agg(
+    total_candidates=("candidate_id", "count"),
+    conversions=("converted", "sum"),
+    total_cost=("cost", "sum")
+).reset_index()
+
+school_performance["conversion_rate"] = (
+    school_performance["conversions"] / school_performance["total_candidates"]
+)
+
+school_performance["cost_per_conversion"] = (
+    school_performance["total_cost"] / school_performance["conversions"]
+)
+
+school_performance.sort_values(by="conversion_rate", ascending=False)
+
+# ROI / Efficiency Analysis
+
+source_conversion["efficiency_score"] = (
+    source_conversion["conversion_rate"] / source_conversion["cost_per_conversion"]
+)
+
+source_conversion.sort_values(by="efficiency_score", ascending=False)
+
+# Visual: Funnel Count by Stage
+
+plt.bar(funnel_counts["stage"], funnel_counts["candidate_count"])
+plt.title("Candidate Funnel by Stage")
+plt.xlabel("Funnel Stage")
+plt.ylabel("Candidate Count")
+plt.show()
+
+#  Visual: Conversion Rate by Source
+source_conversion_sorted = source_conversion.sort_values(
+    by="conversion_rate",
+    ascending=False
+)
+
+plt.bar(
+    source_conversion_sorted["source"],
+    source_conversion_sorted["conversion_rate"]
+)
+
+plt.title("Conversion Rate by Source")
+plt.xlabel("Source")
+plt.ylabel("Conversion Rate")
+plt.show()
+
+# Visual: Cost per Conversion by Source
+cost_sorted = source_conversion.sort_values(
+    by="cost_per_conversion",
+    ascending=True
+)
+
+plt.bar(
+    cost_sorted["source"],
+    cost_sorted["cost_per_conversion"]
+)
+
+plt.title("Cost per Conversion by Source")
+plt.xlabel("Source")
+plt.ylabel("Cost per Conversion")
+plt.show()
+
+# Final Insights
+
+best_conversion_source = source_conversion.sort_values(
+    by="conversion_rate",
+    ascending=False
+).iloc[0]
+
+best_cost_source = source_conversion.sort_values(
+    by="cost_per_conversion",
+    ascending=True
+).iloc[0]
+
+worst_cost_source = source_conversion.sort_values(
+    by="cost_per_conversion",
+    ascending=False
+).iloc[0]
+
+print("Key Insights:")
+print(f"- {best_conversion_source['source']} had the highest conversion rate at {best_conversion_source['conversion_rate']:.2%}.")
+print(f"- {best_cost_source['source']} had the lowest cost per conversion at ${best_cost_source['cost_per_conversion']:.2f}.")
+print(f"- {worst_cost_source['source']} had the highest cost per conversion at ${worst_cost_source['cost_per_conversion']:.2f}.")
+print("- Budget should be shifted toward sources with stronger conversion rates and lower cost per conversion.")
